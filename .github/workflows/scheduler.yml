@@ -1,0 +1,51 @@
+name: Random Scheduler Workflow
+
+on:
+  schedule:
+    - cron: '0 17-23 * * *' # 9 AM to 3 PM PST (17:00 to 23:00 UTC), Monday to Sunday
+    - cron: '0 0-1 * * *'   # 4 PM to 5 PM PST (00:00 to 01:00 UTC next day), Monday to Sunday
+  workflow_dispatch:
+
+jobs:
+  run_script:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v2
+      with:
+        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}      
+
+    - name: Randomly decide to run the script
+      id: randomizer
+      run: |
+        RANDOM_NUMBER=$(( RANDOM % 7 ))
+        echo "Random number is $RANDOM_NUMBER"
+        if [ $RANDOM_NUMBER -eq 1 ]; then
+          echo "PROCEED=true" >> $GITHUB_ENV
+        fi
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - name: Run script if decided
+      if: env.PROCEED == 'true'
+      run: |
+        python -c "
+        import os
+        import datetime
+        
+        def append_date_time(file_path):
+            with open(file_path, 'a') as file:
+                file.write(f'Hello World {datetime.datetime.now()}\\n')
+        
+        file_path = 'hello_world.txt'
+        append_date_time(file_path)
+        
+        os.system('git config --global user.email \"ridwanabdsalam@gmail.com\"')
+        os.system('git config --global user.name \"Ridwanabdusalam\"')
+        os.system('git add hello_world.txt')
+        os.system('git commit -m \"Updated hello_world.txt with current date and time\"')
+        os.system('git push')
+        "
